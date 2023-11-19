@@ -52,13 +52,23 @@ def broadcast_message(message):
     for client_socket in client_sockets:
         client_socket.sendall(data)
 
-while True:
-    # 클라이언트의 연결 요청을 수락
-    client_socket, client_address = server_socket.accept()
+try:
+    while True:
+        # 클라이언트의 연결 요청을 수락
+        client_socket, client_address = server_socket.accept()
 
-    # 클라이언트 소켓을 리스트에 추가
-    client_sockets.append(client_socket)
+        # 클라이언트 소켓을 리스트에 추가
+        client_sockets.append(client_socket)
 
-    # 클라이언트와 통신하는 스레드 생성
-    client_thread = threading.Thread(target=handle_client, args=(client_socket, client_address))
-    client_thread.start()
+        # 클라이언트와 통신하는 스레드 생성
+        client_thread = threading.Thread(target=handle_client, args=(client_socket, client_address))
+        client_thread.start()
+except KeyboardInterrupt:
+    print('서버를 종료합니다.')
+
+    # 모든 클라이언트 소켓 닫기
+    for client_socket in client_sockets:
+        client_socket.close()
+
+    # 서버 소켓 닫기
+    server_socket.close()

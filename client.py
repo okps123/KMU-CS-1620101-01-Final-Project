@@ -1,5 +1,5 @@
-
 import socket
+import threading
 from common.packet import Packet, PacketType
 from common.serdes import serialize, deserialize
 
@@ -12,20 +12,22 @@ client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # 서버에 연결
 client_socket.connect(server_address)
 
-# 메시지 전송
-message = input()
-packet = Packet(PacketType.CHAT, message)
+def receive_message():
+    while True:
+        # 서버로부터 응답 받기
+        data = client_socket.recv(1024)
+        message = deserialize(data)
 
-data = serialize(packet)
+        # 응답 출력
+        print('서버로부터 받은 응답:', message)
 
-client_socket.sendall(data)
+# 메시지 수신을 위한 스레드 생성 및 시작
+receive_thread = threading.Thread(target=receive_message)
+receive_thread.start()
 
-# 서버로부터 응답 받기
-data = client_socket.recv(1024)
-message = deserialize(data)
-
-# 응답 출력
-print('서버로부터 받은 응답:', message)
-
-# 소켓 닫기
-client_socket.close()
+while True:
+    # 메시지 전송
+    message = input()
+    packet = Packet(PacketType.CHAT, message)
+    data = serialize(packet)
+    client_socket.sendall(data)
