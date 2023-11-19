@@ -25,6 +25,11 @@ def receive_message():
 receive_thread = threading.Thread(target=receive_message)
 receive_thread.start()
 
+name = input("이름을 입력하세요: ")
+packet = Packet(PacketType.CLIENT_JOIN, {'nickname': name})
+data = serialize(packet)
+client_socket.sendall(data)
+
 while True:
     # 메시지 전송
     message = input()
