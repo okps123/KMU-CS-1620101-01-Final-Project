@@ -2,13 +2,16 @@ from enum import Enum
 
 class PacketType(Enum):
     CLIENT_JOIN = 0
-    CLIENT_LEAVE = 1
+    CLIENT_JOIN_CONFIRM = 1
 
-    GAME_START = 2
-    GAME_END = 3
+    CLIENT_LEAVE = 2
 
-    SET_WORD = 10
-    SET_DRAWER = 11
+    GAME_START = 3
+    GAME_END = 4
+
+    ROUND_START = 5
+    ROUND_END = 6
+
     SET_LEFT_TIME = 12
 
     DRAW = 20

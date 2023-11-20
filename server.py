@@ -1,6 +1,7 @@
 import socket
 import threading
 import time
+import random
 from enum import Enum
 from common.packet import Packet, PacketType
 from common.serdes import serialize, deserialize
@@ -29,29 +30,108 @@ class Game:
     
     joined_clients: list = []
 
+    drawer_index: int = None
+    current_drawer: Client = None
+    current_word: str = None
+    ronud_start_at: float = None
+
+    word_set: set = set(['사과', '바나나', '포도', '수박', '딸기', '키위', '오렌지', '레몬', '망고', '복숭아'])
+
     def __init__(self):
         self.id = time.time()
-        self.state = None
-        self.drawer = None
-        self.word = None
-        self.start_at = 0
-
-        print(f'게임이 생성되었습니다.')
 
     def join(self, client: Client):
+        # 다른 클라이언트에게 새로운 클라이언트 정보 전송
+        self.send_all(Packet(PacketType.CLIENT_JOIN, {
+            'id': client.id,
+            'nickname': client.nickname,
+        }))
+
         self.joined_clients.append(client)
+
+        # 게임에 참가한 클라이언트에게 게임 참가 확인 메시지 전송
+        self.send(client, Packet(PacketType.CLIENT_JOIN_CONFIRM, {
+            'id': client.id,
+            'nickname': client.nickname,
+        }))
+
         print(f'{client.nickname}님이 게임에 참가하였습니다.')
 
         if (len(self.joined_clients) >= self.MIN_PARTICIPANTS):
-            self.start_at = time.time()
             print(f'최소 인원이 모였습니다. 게임을 시작합니다.')
+            self.start_game()
     
     def leave(self, client: Client):
         self.joined_clients.remove(client)
+        self.send_all(Packet(PacketType.CLIENT_LEAVE, { 'id': client.id, }))
         print(f'{client.nickname}님이 게임에서 나갔습니다.')
 
         if (len(self.joined_clients) < self.MIN_PARTICIPANTS):
             print(f"최소 인원보다 적어 게임을 종료합니다.")
+
+    def start_game(self):
+        print(f'게임을 시작합니다.')
+        self.start_at = time.time()
+        self.send_all(Packet(PacketType.GAME_START, {}))
+
+        self.init_round()
+        self.start_round()
+
+    def init_round(self):
+        self.current_drawer = None
+        self.current_word = None
+        self.drawer_index = -1
+
+    def start_round(self):
+        self.drawer_index += 1
+        if (self.drawer_index >= len(self.joined_clients)):
+            print(f'모든 참가자가 한 번씩 그렸습니다. 게임을 종료합니다.')
+            self.send_all(Packet(PacketType.GAME_END, {}))
+            return
+        
+        drawer = self.joined_clients[self.drawer_index]
+        self.current_drawer = drawer
+
+        word = random.choice(list(self.word_set))
+        self.current_word = word
+
+        self.ronud_start_at = time.time()
+
+        print(f'{drawer.nickname}님이 그림을 그립니다. (단어: {word})')
+
+        time.sleep(0.1)
+
+        self.send_all(Packet(PacketType.ROUND_START, {
+            'drawer_id': drawer.id,
+            'word': word,
+            'start_time': self.ronud_start_at,
+        }))
+        self.start_round_timer(start_time=self.ronud_start_at)
+    
+    def end_round(self):
+        print(f'라운드를 종료합니다.')
+        self.send_all(Packet(PacketType.ROUND_END, {}))
+
+        time.sleep(1)
+        self.start_round()
+
+    def start_round_timer(self, start_time: float, round_time: int = 60):
+        def callback():
+            left_time = round_time - (time.time() - start_time)
+            print(f'남은 시간: {left_time}초')
+            self.end_round()
+
+        threading.Timer(60, callback).start()
+    
+    def send(self, client: Client, packet: Packet):
+        data = serialize(packet)
+        client.socket.sendall(data)
+
+    def send_all(self, packet: Packet):
+        data = serialize(packet)
+        for client in self.joined_clients:
+            print(f'{client.nickname}에게 메시지 전송: {packet}')
+            client.socket.sendall(data)
 
 game = Game()
 
@@ -124,14 +204,8 @@ def handle_client_join(client: Client, message: any):
     client.join(nickname=message.data['nickname'])
     game.join(client)
 
-    packet = Packet(PacketType.CLIENT_JOIN, { 'id': client.id, 'nickname': client.nickname, })
-    broadcast_message(packet)
-
 def handle_client_leave(client: Client):
     game.leave(client)
-
-    packet = Packet(PacketType.CLIENT_LEAVE, { 'id': client.id, })
-    broadcast_message(packet)
 
 # 모든 클라이언트에게 메시지를 브로드캐스트하는 함수
 def broadcast_message(message):
