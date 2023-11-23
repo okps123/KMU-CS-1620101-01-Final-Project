@@ -115,6 +115,21 @@ class Game:
         time.sleep(1)
         self.start_round()
 
+    def guess(self, client: Client, message: any):
+        if (self.current_drawer == client):
+            print(f'그림을 그리는 중에는 단어를 맞출 수 없습니다.')
+            return
+        
+        if (self.current_word == message):
+            print(f'{client.nickname}님이 정답을 맞췄습니다.')
+            self.send_all(Packet(PacketType.GUESS_CORRECT, {
+                'id': client.id,
+                'nickname': client.nickname,
+            }))
+            self.end_round()
+        else:
+            print(f'{client.nickname}님이 정답을 맞추지 못했습니다.')
+
     def start_round_timer(self, start_time: float, round_time: int = 60):
         def callback():
             left_time = round_time - (time.time() - start_time)
@@ -130,7 +145,7 @@ class Game:
     def send_all(self, packet: Packet):
         data = serialize(packet)
         for client in self.joined_clients:
-            print(f'{client.nickname}에게 메시지 전송: {packet}')
+            # print(f'{client.nickname}에게 메시지 전송: {packet}')
             client.socket.sendall(data)
 
 game = Game()
@@ -191,14 +206,7 @@ def handle_client_message(client: Client, message: any):
         handle_client_leave(client)
 
     elif message.type == PacketType.CHAT:
-        print(f'{client.nickname}: {message.data}')
-        
-        packet = Packet(PacketType.CHAT, {
-            'id': client.id,
-            'nickname': client.nickname,
-            'message': message.data,
-        })
-        broadcast_message(packet)
+        handle_client_chat(client, message)
 
 def handle_client_join(client: Client, message: any):
     client.join(nickname=message.data['nickname'])
@@ -206,6 +214,17 @@ def handle_client_join(client: Client, message: any):
 
 def handle_client_leave(client: Client):
     game.leave(client)
+
+def handle_client_chat(client: Client, message: any):
+    print(f'{client.nickname}: {message.data}')
+
+    packet = Packet(PacketType.CHAT, {
+        'id': client.id,
+        'nickname': client.nickname,
+        'message': message.data,
+    })
+    game.send_all(packet)
+    game.guess(client, message.data)
 
 # 모든 클라이언트에게 메시지를 브로드캐스트하는 함수
 def broadcast_message(message):

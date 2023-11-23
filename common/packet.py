@@ -11,7 +11,9 @@ class PacketType(Enum):
 
     ROUND_START = 5
     ROUND_END = 6
-
+    
+    GUESS_CORRECT = 10
+    
     SET_LEFT_TIME = 12
 
     DRAW = 20
