@@ -130,6 +130,24 @@ class Game:
         else:
             print(f'{client.nickname}님이 정답을 맞추지 못했습니다.')
 
+    def draw(self, client: Client, message: any):
+        # 그리는 중인 클라이언트가 아니면 무시
+        if (self.current_drawer != client):
+            return
+        
+        self.send_all(Packet(PacketType.DRAW, {
+            'poisition': message.position,
+            'color': message.color,
+            'size': message.size,
+        }))
+
+    def clear(self, client: Client, message: any):
+        # 그리는 중인 클라이언트가 아니면 무시
+        if (self.current_drawer != client):
+            return
+        
+        self.send_all(Packet(PacketType.CLEAR, {}))
+
     def start_round_timer(self, start_time: float, round_time: int = 60):
         def callback():
             left_time = round_time - (time.time() - start_time)
@@ -208,6 +226,12 @@ def handle_client_message(client: Client, message: any):
     elif message.type == PacketType.CHAT:
         handle_client_chat(client, message)
 
+    elif message.type == PacketType.DRAW:
+        handle_client_draw(client, message)
+    
+    elif message.type == PacketType.CLEAR:
+        handle_client_clear(client, message)
+
 def handle_client_join(client: Client, message: any):
     client.join(nickname=message.data['nickname'])
     game.join(client)
@@ -225,6 +249,12 @@ def handle_client_chat(client: Client, message: any):
     })
     game.send_all(packet)
     game.guess(client, message.data)
+
+def handle_client_draw(client: Client, message: any):
+    game.draw(client, message.data)
+
+def handle_client_clear(client: Client, message: any):
+    game.clear(client, message.data)
 
 # 모든 클라이언트에게 메시지를 브로드캐스트하는 함수
 def broadcast_message(message):
