@@ -19,7 +19,12 @@ class PacketType(Enum):
     DRAW = 20
     ERASE = 21
     CLEAR = 22
-
+    COLOR_CHANGE_BLACK = 23
+    COLOR_CHANGE_RED = 24
+    COLOR_CHANGE_GREEN = 25
+    COLOR_CHANGE_BLUE = 26
+    THICKNESS_THICKER = 27
+    THICKNESS_THINNER = 28
     CHAT = 30
 
 class Packet:
