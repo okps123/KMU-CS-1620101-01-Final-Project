@@ -135,11 +135,7 @@ class Game:
         if (self.current_drawer != client):
             return
         
-        self.send_all(Packet(PacketType.DRAW, {
-            'poisition': message.position,
-            'color': message.color,
-            'size': message.size,
-        }))
+        self.send_all(Packet(PacketType.DRAW, message))
 
     def clear(self, client: Client, message: any):
         # 그리는 중인 클라이언트가 아니면 무시

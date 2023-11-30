@@ -26,87 +26,57 @@ def receive_message():
         data = client_socket.recv(1024)
         message = deserialize(data)
 
+        # 받은 메시지의 타입에 따라 처리
+        if message.type == PacketType.CHAT:
+            textwindow.insert(1.0, message.data + "\n")
+        elif message.type == PacketType.DRAW:
+            draw_canvas(message.data[0], message.data[1], message.data[2], message.data[3])
+
         # 응답 출력
         print('서버로부터 받은 응답:', message)
 
 def paint(event):
-    x1, y1 = ( event.x-thickness ), ( event.y-thickness )
-    x2, y2 = ( event.x+thickness ), ( event.y+thickness )
-    canvas.create_oval(x1, y1, x2, y2, fill=mycolor, outline=mycolor)
-    message = [x1, x2, y1, y2, thickness, mycolor]
+    message = [event.x, event.y, thickness, mycolor]
     packet = Packet(PacketType.DRAW, message)
     data = serialize(packet)
     client_socket.sendall(data)
-    print(message)
+
+def draw_canvas(x, y, thickness, color):
+    x1, y1 = (x - thickness), (y - thickness)
+    x2, y2 = (x + thickness), (y + thickness)
+    canvas.create_oval(x1, y1, x2, y2, fill=color, outline=color)
 
 def erase():
     global mycolor
     mycolor = "white"
-    message = "erase"
-    packet = Packet(PacketType.ERASE, message)
-    data = serialize(packet)
-    client_socket.sendall(data)
-    print(message)
 
 def change_color_black():
     global mycolor
     mycolor="black"
-    message = "change black"
-    packet = Packet(PacketType.COLOR_CHANGE_BLACK, message)
-    data = serialize(packet)
-    client_socket.sendall(data)
-    print(message)
-
 
 def change_color_red():
     global mycolor
     mycolor="red"
-    message = "change red"
-    packet = Packet(PacketType.COLOR_CHANGE_RED, message)
-    data = serialize(packet)
-    client_socket.sendall(data)
-    print(message)
 
 def change_color_blue():
     global mycolor
     mycolor="blue"
-    message = "change blue"
-    packet = Packet(PacketType.COLOR_CHANGE_BLUE, message)
-    data = serialize(packet)
-    client_socket.sendall(data)
-    print(message)
 
 def change_color_green():
     global mycolor
     mycolor="green"
-    message = "change green"
-    packet = Packet(PacketType.COLOR_CHANGE_GREEN, message)
-    data = serialize(packet)
-    client_socket.sendall(data)
-    print(message)
 
 def thickness_thicker():
     global thickness
     if thickness <= 9:
         thickness += 1
     label["text"] = "굵기 : " + str(thickness)
-    message = "thicker"
-    packet = Packet(PacketType.THICKNESS_THICKER, message)
-    data = serialize(packet)
-    client_socket.sendall(data)
-    print(message)
-
 
 def thickness_thinner():
     global thickness
     if thickness >=2:
         thickness -= 1
     label["text"] = "굵기 : " + str(thickness)
-    message = "thinner"
-    packet = Packet(PacketType.THICKNESS_THINNER, message)
-    data = serialize(packet)
-    client_socket.sendall(data)
-    print(message)
 
 def clear():
     canvas.delete("all")
