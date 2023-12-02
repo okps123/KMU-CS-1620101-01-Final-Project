@@ -31,9 +31,17 @@ def receive_message():
             textwindow.insert(1.0, message.data + "\n")
         elif message.type == PacketType.DRAW:
             draw_canvas(message.data[0], message.data[1], message.data[2], message.data[3])
+        elif message.type == PacketType.CLEAR:
+            clear()
+        # 이부분 메세지 데이터에서 단어만 뽑아서 message.data대신 넣으시면 됩니다. data가 정확히 어떻게 구성된건지 헷갈려서 일단은 놔뒀어요.
+        elif message.type == PacketType.ROUND_START:
+            answer_entry.insert(1.0, message.data)
+            textwindow.insert(1.0, "게임이 시작되었습니다.")
 
         # 응답 출력
         print('서버로부터 받은 응답:', message)
+
+
 
 def paint(event):
     message = [event.x, event.y, thickness, mycolor]
@@ -168,6 +176,10 @@ start_button.place(x=0, y=200, width=230, height=30)
 
 entry = tkinter.Entry(window)
 entry.place(x=0, y=610, width=300, height=30)
+
+answer_entry = tkinter.Text(window, state="normal")
+answer_entry.place(x=0, y=150, width=230, height=40)
+
 
 textwindow = tkinter.Text(window)
 textwindow.place(x=0, y=300, width=350, height=300)
