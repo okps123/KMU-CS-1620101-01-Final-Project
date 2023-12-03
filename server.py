@@ -57,6 +57,8 @@ class Game:
 
         print(f'{client.nickname}님이 게임에 참가하였습니다.')
 
+        time.sleep(0.1)
+
         if (len(self.joined_clients) >= self.MIN_PARTICIPANTS):
             print(f'최소 인원이 모였습니다. 게임을 시작합니다.')
             self.start_game()
@@ -117,7 +119,6 @@ class Game:
 
     def guess(self, client: Client, message: any):
         if (self.current_drawer == client):
-            print(f'그림을 그리는 중에는 단어를 맞출 수 없습니다.')
             return
         
         if (self.current_word == message):
@@ -125,6 +126,7 @@ class Game:
             self.send_all(Packet(PacketType.GUESS_CORRECT, {
                 'id': client.id,
                 'nickname': client.nickname,
+                'word': self.current_word,
             }))
             self.end_round()
         else:

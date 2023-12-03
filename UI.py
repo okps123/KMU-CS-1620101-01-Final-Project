@@ -25,21 +25,50 @@ def receive_message():
         # 서버로부터 응답 받기
         data = client_socket.recv(1024)
         message = deserialize(data)
-
+        
         # 받은 메시지의 타입에 따라 처리
-        if message.type == PacketType.CHAT:
-            textwindow.insert(1.0, message.data + "\n")
+        if message.type == PacketType.CLIENT_JOIN:
+            textwindow.insert(1.0, message.data['nickname'] + "님이 입장하셨습니다.\n")
+        elif message.type == PacketType.CLIENT_LEAVE:
+            textwindow.insert(1.0, message.data['nickname'] + "님이 퇴장하셨습니다.\n")
+        elif message.type == PacketType.CLIENT_JOIN_CONFIRM:
+            global clientId
+            clientId = message.data['id']
+            textwindow.insert(1.0, message.data['nickname'] + "님이 입장하셨습니다.\n")
+            print(f'내 클라이언트 아이디: {clientId}')
+
+        elif message.type == PacketType.CHAT:
+            id = message.data['id']
+            name = message.data['nickname']
+            text = message.data['message']
+
+            textwindow.insert(1.0, name + ": " + text + "\n")
+
         elif message.type == PacketType.DRAW:
             draw_canvas(message.data[0], message.data[1], message.data[2], message.data[3])
         elif message.type == PacketType.CLEAR:
             clear()
         # 이부분 메세지 데이터에서 단어만 뽑아서 message.data대신 넣으시면 됩니다. data가 정확히 어떻게 구성된건지 헷갈려서 일단은 놔뒀어요.
         elif message.type == PacketType.ROUND_START:
-            answer_entry.insert(1.0, message.data)
-            textwindow.insert(1.0, "게임이 시작되었습니다.")
+            textwindow.insert(1.0, "라운드가 시작됐습니다.\n")
+            clear()
+
+            if clientId == message.data['drawer_id']:
+                textwindow.insert(1.0, "그림을 그릴 차례입니다. 제시어는 " + message.data['word'] + "입니다.\n")
+                answer_entry.delete(1.0, tkinter.END)
+                answer_entry.insert(1.0, "제시어: " + message.data['word'])
+            else:
+                textwindow.insert(1.0, "그림을 맞춰보세요.\n")
+        elif message.type == PacketType.ROUND_END:
+            textwindow.insert(1.0, "라운드가 끝났습니다.\n")
+        elif message.type == PacketType.GAME_END:
+            textwindow.insert(1.0, "게임이 끝났습니다.\n")
+        elif message.type == PacketType.GUESS_CORRECT:
+            textwindow.insert(1.0, message.data['nickname'] + "님이 맞추셨습니다. 정답은 " + message.data['word'] + "입니다.\n")
+
 
         # 응답 출력
-        print('서버로부터 받은 응답:', message)
+        print(message)
 
 
 
@@ -88,11 +117,11 @@ def thickness_thinner():
 
 def clear():
     canvas.delete("all")
-    message = "clear"
-    packet = Packet(PacketType.CLEAR, message)
+
+def send_clear():
+    packet = Packet(PacketType.CLEAR, {})
     data = serialize(packet)
     client_socket.sendall(data)
-    print(message)
 
 def start_timer():
     global elapsed_time
@@ -122,17 +151,11 @@ def update_timer():
 def dialog():
     chat = entry.get()
     if chat != "":
-        textwindow.insert(1.0, chat+"\n")
         packet = Packet(PacketType.CHAT, chat)
         data = serialize(packet)
         client_socket.sendall(data)
-        print(chat)
+
     entry.delete(0, 'end')
-
-
-# 메시지 수신을 위한 스레드 생성 및 시작
-receive_thread = threading.Thread(target=receive_message)
-receive_thread.start()
 
 name = input("이름을 입력하세요: ")
 packet = Packet(PacketType.CLIENT_JOIN, {'nickname': name})
@@ -158,7 +181,7 @@ button4 = tkinter.Button(window, text="굵게", command=thickness_thicker)
 button4.place(x=100, y=80, width=50, height=30)
 button5 = tkinter.Button(window, text="얇게", command=thickness_thinner)
 button5.place(x=150, y=80, width=50, height=30)
-button6 = tkinter.Button(window, text="전체 지우기", command=clear)
+button6 = tkinter.Button(window, text="전체 지우기", command=send_clear)
 button6.place(x=50, y=110, width=100, height=30)
 button7 = tkinter.Button(window, text="지우개", command=erase)
 button7.place(x=150, y=110, width=50, height=30)
@@ -181,8 +204,12 @@ answer_entry = tkinter.Text(window, state="normal")
 answer_entry.place(x=0, y=150, width=230, height=40)
 
 
-textwindow = tkinter.Text(window)
+textwindow = tkinter.Text(window, font=("Arial", 15))
 textwindow.place(x=0, y=300, width=350, height=300)
+
+# 메시지 수신을 위한 스레드 생성 및 시작
+receive_thread = threading.Thread(target=receive_message)
+receive_thread.start()
 
 window.mainloop()
 
