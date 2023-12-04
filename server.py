@@ -152,7 +152,7 @@ class Game:
             print(f'남은 시간: {left_time}초')
             self.end_round()
 
-        threading.Timer(60, callback).start()
+        threading.Timer(round_time, callback).start()
     
     def send(self, client: Client, packet: Packet):
         data = serialize(packet)
@@ -194,7 +194,7 @@ def handle_client(client: Client):
     while True:
         # 클라이언트로부터 데이터 수신
         data = client.socket.recv(1024)
-        if not data:
+        if not data: # 클라이언트와 연결이 끊어지면 data는 빈 문자열
             break
 
         # 데이터 역직렬화
