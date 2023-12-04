@@ -65,7 +65,7 @@ class Game:
     
     def leave(self, client: Client):
         self.joined_clients.remove(client)
-        self.send_all(Packet(PacketType.CLIENT_LEAVE, { 'id': client.id, }))
+        self.send_all(Packet(PacketType.CLIENT_LEAVE, { 'id': client.id, 'nickname': client.nickname }))
         print(f'{client.nickname}님이 게임에서 나갔습니다.')
 
         if (len(self.joined_clients) < self.MIN_PARTICIPANTS):
