@@ -108,7 +108,7 @@ class Game:
             'word': word,
             'start_time': self.ronud_start_at,
         }))
-        self.start_round_timer(start_time=self.ronud_start_at)
+        self.start_round_timer(drawer.id, start_time=self.ronud_start_at)
     
     def end_round(self):
         print(f'라운드를 종료합니다.')
@@ -146,8 +146,11 @@ class Game:
         
         self.send_all(Packet(PacketType.CLEAR, {}))
 
-    def start_round_timer(self, start_time: float, round_time: int = 60):
+    def start_round_timer(self, drawer_id: int, start_time: float, round_time: int = 60):
         def callback():
+            if self.current_drawer.id != drawer_id:
+                return
+
             left_time = round_time - (time.time() - start_time)
             print(f'남은 시간: {left_time}초')
             self.end_round()
